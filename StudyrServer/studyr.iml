@@ -31,5 +31,7 @@
     <orderEntry type="library" exported="" name="Gradle: org.eclipse.jetty:jetty-servlet:9.0.2.v20130417" level="project" />
     <orderEntry type="library" exported="" name="Gradle: org.eclipse.jetty:jetty-util:9.0.2.v20130417" level="project" />
     <orderEntry type="library" exported="" name="Gradle: org.eclipse.jetty:jetty-security:9.0.2.v20130417" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: org.apache.commons:commons-pool2:2.3" level="project" />
+    <orderEntry type="library" exported="" name="Gradle: redis.clients:jedis:2.8.0" level="project" />
   </component>
 </module>

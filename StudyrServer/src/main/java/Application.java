@@ -19,21 +19,10 @@ public class Application {
     public static void main(String[] args) {
 
         Jedis jedis = new Jedis("localhost");
-        jedis.set("foo", "bar");
 
         rps = new RedisPostingService(jedis);
 
-
-        get("/", (req, res) -> "Welcome to Studyr");
-
-        get("/hello", (req, res) -> {
-
-            System.out.println("hello world");
-            return "Hello, world!";
-        });
-
-//        get("/redis", (req, res) -> jedis.get("foo"));
-
+        // Creates a new user
         post("/u/create",
                 (req, res) -> {
                     String name = req.queryParams("name");
@@ -46,6 +35,7 @@ public class Application {
                 }, toJson
         );
 
+        // Adds a course to an existing user
         post("/u/:id/addcourse",
                 (req, res) -> {
                     String id = req.params(":id");
@@ -57,6 +47,7 @@ public class Application {
                 }, toJson
         );
 
+        // Removes a course from an existing user
         delete("/u/:id/removecourse",
                 (req, res) -> {
                     String id = req.params(":id");
@@ -68,6 +59,7 @@ public class Application {
                 }, toJson
         );
 
+        // Gets info about a user
         get("/u/:id/info",
                 (req, res) -> {
                     String id = req.params(":id");
@@ -77,28 +69,6 @@ public class Application {
                     return user;
                 }, toJson
         );
-
-
-
-        get("/u/:id/get",
-                (req, res) -> {
-                    return null;
-                });
-
-//        post("/post",
-//                (req, res) -> {
-//                    System.out.println("test");
-//
-//                    User user = new User("id", "name", "school" );
-//
-//                    res.status(201);
-//                    return user;
-//
-//                }, toJson
-//        );
-
-        get("/redis/:key/get", (req, res) ->
-                jedis.get(req.params(":key")));
 
     }
 

@@ -17,7 +17,7 @@ public class Application {
     static RedisPostingService rps;
 
     public static void main(String[] args) {
-
+	port(4200);
         Jedis jedis = new Jedis("localhost");
 
         rps = new RedisPostingService(jedis);

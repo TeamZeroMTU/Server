@@ -80,4 +80,32 @@ public class RedisPostingService {
 
         return new User(id, name, school, courses);
     }
+
+    public ArrayList<User> getSimilarUsers(String id) {
+
+
+        ArrayList<Course> courses = getCoursesById(id);
+        ArrayList<String> courseStrings = new ArrayList<String>();
+
+        for (Course course : courses) {
+            courseStrings.add(course.getName());
+        }
+
+        ArrayList<User> users = getUsersBySchool(jedis.hget("user:" + id, "school"));
+
+        for (User user : users) {
+            ArrayList<Course> userCourses = getCoursesById(id);
+            ArrayList<String> userCourseStrings = new ArrayList<String>();
+            for (Course course : userCourses) {
+                userCourseStrings.add(course.getName());
+            }
+
+            userCourseStrings.retainAll(courseStrings);
+            if (userCourseStrings.size() == 0) {
+                users.remove(user);
+            }
+        }
+
+        return users;
+    }
 }

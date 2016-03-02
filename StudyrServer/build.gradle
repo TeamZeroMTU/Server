@@ -32,7 +32,7 @@ remotes {
 		host = 'jeremypi.duckdns.org'
 		user = 'www'
 		port = 4001
-    knownHosts = allowAnyHosts
+    knownHosts = file("${System.properties['user.home']}/.ssh/known_hosts")
     identity = file("${System.properties['user.home']}/.ssh/id_rsa")
 	}
 }

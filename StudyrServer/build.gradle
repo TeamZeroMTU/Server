@@ -32,12 +32,12 @@ remotes {
 		host = 'jeremypi.duckdns.org'
 		user = 'www'
 		port = 4001
-    knownHosts = file("${System.properties['user.home']}/.ssh/known_hosts")
+		knownHosts = allowAnyHosts
     identity = file("${System.properties['user.home']}/.ssh/id_rsa")
 	}
 }
 
-task deploy(dependsOn: build) << {
+task deploy(dependsOn: distZip) << {
   ssh.run {
     session(remotes.desktopServer) {
       put from: 'build/distributions/studyr-1.0.zip', into: '/home/www'

@@ -4,6 +4,7 @@ import Data.Course;
 import Data.Message;
 import Data.User;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class RedisPostingService {
 
     Jedis jedis;
+    Transaction txn = jedis.multi();
 
     public RedisPostingService(Jedis jedis) {
         this.jedis = jedis;
@@ -27,9 +29,11 @@ public class RedisPostingService {
         String id = UUID.randomUUID().toString();
 
         // Map the name and school to the ID and add the ID to a list associated with the school
-        jedis.hset("user:" + id, "name", name);
-        jedis.hset("user:" + id, "school", school);
-        jedis.sadd("schoolUsers:" + school, id);
+        txn.hset("user:" + id, "name", name);
+        txn.hset("user:" + id, "school", school);
+        txn.sadd("schoolUsers:" + school, id);
+
+        txn.exec();
 
         return new User(id, name, school);
     }
@@ -37,9 +41,11 @@ public class RedisPostingService {
     public Course addCourseToUser(String id, String name) {
 
         // Add the name of the course to a list of courses for the id
-        jedis.sadd("userCourses:" + id, name);
+        txn.sadd("userCourses:" + id, name);
         // Add the user ID to a list of IDs associated with that course
-        jedis.sadd("courseUsers:" + name, id);
+        txn.sadd("courseUsers:" + name, id);
+
+        txn.exec();
 
         return new Course(name);
     }
@@ -47,9 +53,11 @@ public class RedisPostingService {
     public Course removeCourseFromUser(String id, String name) {
 
         // Remove from the userCourses set
-        jedis.srem("userCourses:" + id, name);
+        txn.srem("userCourses:" + id, name);
         // Remove from the courseUsers set
-        jedis.srem("courseUsers:" + name, id);
+        txn.srem("courseUsers:" + name, id);
+
+        txn.exec();
 
         return new Course(name);
     }
@@ -92,14 +100,16 @@ public class RedisPostingService {
 
         Long test = new Date().getTime();
 
-        jedis.hset("message:" + id, "text", text);
-        jedis.hset("message:" + id, "time", "" + message.getTime());
-        jedis.hset("message:" + id, "sender", senderId);
-        jedis.hset("message:" + id, "receiver", recId);
+        txn.hset("message:" + id, "text", text);
+        txn.hset("message:" + id, "time", "" + message.getTime());
+        txn.hset("message:" + id, "sender", senderId);
+        txn.hset("message:" + id, "receiver", recId);
 
 
-        jedis.lpush("messages:" + senderId, id);
-        jedis.lpush("messages:" + recId, id);
+        txn.lpush("messages:" + senderId, id);
+        txn.lpush("messages:" + recId, id);
+
+        txn.exec();
 
 
         return message;

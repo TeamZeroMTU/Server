@@ -1,3 +1,7 @@
+plugins {
+	id 'org.hidetake.ssh' version '1.2.0'
+}
+
 group 'com.teamzero.studyr'
 version '1.0'
 
@@ -22,3 +26,18 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
+
+remotes {
+}
+
+task deploy(dependsOn: distZip) << {
+  ssh.run {
+    session(remotes.desktopServer) {
+      put from: 'build/distributions/studyr-1.0.zip', into: '/home/www'
+        execute 'rm -rf /home/www/studyr-1.0'
+        execute 'unzip /home/www/studyr-1.0'
+        execute 'systemctl --user restart studyr.service'
+    }
+	}
+}
+ 

@@ -7,6 +7,8 @@ import JSON.Json;
 import Redis.RedisPostingService;
 import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
+
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static spark.Spark.*;
@@ -17,7 +19,7 @@ public class Application {
     static RedisPostingService rps;
 
     public static void main(String[] args) {
-
+	
         Jedis jedis = new Jedis("localhost");
 
         rps = new RedisPostingService(jedis);
@@ -67,6 +69,17 @@ public class Application {
                     User user = rps.getUserById(id);
                     res.status(201);
                     return user;
+                }, toJson
+        );
+
+        // Gets users that share classes and go to the same school as another user
+        get("/u/:id/similar",
+                (req, res) -> {
+                    String id = req.params(":id");
+
+                    ArrayList<User> users = rps.getSimilarUsers(id);
+                    res.status(201);
+                    return users;
                 }, toJson
         );
 

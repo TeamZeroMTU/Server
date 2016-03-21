@@ -37,6 +37,24 @@ public class Application {
                 }, toJson
         );
 
+        // Creates a user with set ID
+        post("/u/:id/create",
+                (req, res) -> {
+                    String id = req.params(":id");
+                    String name = req.queryParams("name");
+                    String school = req.queryParams("school");
+
+                    User user = rps.createUserWithId(id, name, school);
+                    if (user == null) {
+                        res.status(200); // Not sure what the correct response code is in the case that this user already exists
+                        return user;
+                    }
+                    res.status(201);
+                    return user;
+
+                }, toJson
+        );
+
         // Adds a course to an existing user
         post("/u/:id/addcourse",
                 (req, res) -> {
@@ -67,11 +85,15 @@ public class Application {
                     String id = req.params(":id");
 
                     User user = rps.getUserById(id);
+                    System.out.println(user.getName());
+                    System.out.println(user.getSchool());
                     res.status(201);
                     return user;
                 }, toJson
         );
 
+
+        // TODO: This is returning all users even if they share no courses in common
         // Gets users that share classes and go to the same school as another user
         get("/u/:id/similar",
                 (req, res) -> {
@@ -82,6 +104,8 @@ public class Application {
                     return users;
                 }, toJson
         );
+
+
 
     }
 

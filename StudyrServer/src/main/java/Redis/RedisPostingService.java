@@ -9,6 +9,7 @@ import redis.clients.jedis.Transaction;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -17,13 +18,16 @@ import java.util.UUID;
 public class RedisPostingService {
 
     Jedis jedis;
-    Transaction txn = jedis.multi();
+    Transaction txn;
 
     public RedisPostingService(Jedis jedis) {
         this.jedis = jedis;
     }
 
     public User createUser(String name, String school) {
+
+        // Set txn
+        txn  = jedis.multi();
 
         // Randomly generate an ID (This may be changed later if we are using Facebook IDs)
         String id = UUID.randomUUID().toString();
@@ -38,7 +42,36 @@ public class RedisPostingService {
         return new User(id, name, school);
     }
 
+    public User createUserWithId(String id, String name, String school) {
+
+        // Set txn
+        txn  = jedis.multi();
+
+        txn.hset("user:" + id, "name", name);
+        txn.hset("user:" + id, "school", school);
+        txn.sadd("schoolUsers:" + school, id);
+
+        txn.exec();
+
+        return new User(id, name, school);
+    }
+
+    public User matchUser(String id, String matchId) {
+
+        // Set txn
+        txn  = jedis.multi();
+
+        txn.sadd("match:" + id, matchId);
+
+        txn.exec();
+
+        return getUserById(id);
+    }
+
     public Course addCourseToUser(String id, String name) {
+
+        // Set txn
+        txn  = jedis.multi();
 
         // Add the name of the course to a list of courses for the id
         txn.sadd("userCourses:" + id, name);
@@ -51,6 +84,9 @@ public class RedisPostingService {
     }
 
     public Course removeCourseFromUser(String id, String name) {
+
+        // Set txn
+        txn  = jedis.multi();
 
         // Remove from the userCourses set
         txn.srem("userCourses:" + id, name);
@@ -85,14 +121,50 @@ public class RedisPostingService {
     public User getUserById(String id) {
 
         String name = jedis.hget("user:" + id, "name");
+        System.out.println("NAME: " + name);
         String school = jedis.hget("user:" + id, "school");
+        System.out.println("SCHOOL: " + school);
 
         ArrayList<Course> courses = getCoursesById(id);
 
         return new User(id, name, school, courses);
     }
 
+    public ArrayList<String> getPotentialMatchIds(String id) {
+        ArrayList<String> matches = new ArrayList<String>();
+        for (String matchId : jedis.smembers("match:" + id)) {
+            matches.add(matchId);
+        }
+        return matches;
+    }
+
+    public ArrayList<User> getMatches(String id) {
+        ArrayList<String> potentialMatches = getPotentialMatchIds(id);
+
+        for (String matchId : potentialMatches) {
+            ArrayList<String> matches = getPotentialMatchIds(matchId);
+            for (String mId : matches) {
+                if (mId.equals(id)) {
+                    continue;
+                }
+            }
+            potentialMatches.remove(matchId);
+        }
+
+        ArrayList<User> foundMatches = new ArrayList<User>();
+
+        for (String mId : potentialMatches) {
+            foundMatches.add(getUserById(mId));
+        }
+
+        return foundMatches;
+
+    }
+
     public Message createMessage(String senderId, String recId, String text) {
+
+        // Set txn
+        txn  = jedis.multi();
 
         String id = UUID.randomUUID().toString();
 
@@ -152,7 +224,6 @@ public class RedisPostingService {
 
         return messages;
     }
-
 
     public ArrayList<User> getSimilarUsers(String id) {
 

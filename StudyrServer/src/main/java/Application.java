@@ -1,17 +1,21 @@
 /**
  * Created by miles on 2/15/16.
  */
+
+import java.util.ArrayList;
+
 import Data.Course;
 import Data.User;
+import Facebook.TokenInfo;
+import Facebook.TokenInterrogator;
 import JSON.Json;
 import Redis.RedisPostingService;
 import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
 
-import java.util.ArrayList;
-import java.util.UUID;
-
-import static spark.Spark.*;
+import static spark.Spark.delete;
+import static spark.Spark.get;
+import static spark.Spark.post;
 public class Application {
 
     static ResponseTransformer toJson = obj -> Json.gson.toJson(obj);
@@ -19,10 +23,12 @@ public class Application {
     static RedisPostingService rps;
 
     public static void main(String[] args) {
-	
+
         Jedis jedis = new Jedis("localhost");
 
         rps = new RedisPostingService(jedis);
+
+        TokenInterrogator fbInterrogator = new TokenInterrogator();
 
         // Creates a new user
         post("/u/create",
@@ -105,8 +111,15 @@ public class Application {
                 }, toJson
         );
 
+        // Gets a users own ID.
+        get("/me/id",
+                (req, res) -> {
+                    String userToken = req.queryParams("userToken");
+                    TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
 
-
+                    res.status(201);
+                    return info.data.user_id;
+                }, toJson
+        );
     }
-
 }

@@ -86,15 +86,24 @@ public class Application {
         );
 
         // Gets info about a user
-        get("/u/:id/info",
+        post("/u/:id/info",
                 (req, res) -> {
-                    String id = req.params(":id");
+                    try {
+                        String userToken = req.queryParams("token");
+                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        if(rps.getUserById(info.data.user_id) != null) {
+                            String id = req.params(":id");
 
-                    User user = rps.getUserById(id);
-                    System.out.println(user.getName());
-                    System.out.println(user.getSchool());
-                    res.status(201);
-                    return user;
+                            User user = rps.getUserById(id);
+                            System.out.println(user.getName());
+                            System.out.println(user.getSchool());
+                            res.status(201);
+                            return user;
+                        }
+                    } catch (Exception e) {
+                    }
+                    res.status(404);
+                    return null;
                 }, toJson
         );
 

@@ -112,13 +112,17 @@ public class Application {
         );
 
         // Gets a users own ID.
-        get("/me/id",
+        post("/me/id",
                 (req, res) -> {
-                    String userToken = req.queryParams("userToken");
-                    TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
-
-                    res.status(201);
-                    return info.data.user_id;
+                    try {
+                        String userToken = req.queryParams("token");
+                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        res.status(201);
+                        return info.data.user_id;
+                    } catch (Exception e) {
+                        res.status(404);
+                        return null;
+                    }
                 }, toJson
         );
     }

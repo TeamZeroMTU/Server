@@ -1,17 +1,21 @@
 /**
  * Created by miles on 2/15/16.
  */
+
+import java.util.ArrayList;
+
 import Data.Course;
 import Data.User;
+import Facebook.TokenInfo;
+import Facebook.TokenInterrogator;
 import JSON.Json;
 import Redis.RedisPostingService;
 import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
 
-import java.util.ArrayList;
-import java.util.UUID;
-
-import static spark.Spark.*;
+import static spark.Spark.delete;
+import static spark.Spark.get;
+import static spark.Spark.post;
 public class Application {
 
     static ResponseTransformer toJson = obj -> Json.gson.toJson(obj);
@@ -19,10 +23,12 @@ public class Application {
     static RedisPostingService rps;
 
     public static void main(String[] args) {
-	
+
         Jedis jedis = new Jedis("localhost");
 
         rps = new RedisPostingService(jedis);
+
+        TokenInterrogator fbInterrogator = new TokenInterrogator();
 
         // Creates a new user
         post("/u/create",
@@ -80,15 +86,24 @@ public class Application {
         );
 
         // Gets info about a user
-        get("/u/:id/info",
+        post("/u/:id/info",
                 (req, res) -> {
-                    String id = req.params(":id");
+                    try {
+                        String userToken = req.queryParams("token");
+                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        if(rps.getUserById(info.data.user_id) != null) {
+                            String id = req.params(":id");
 
-                    User user = rps.getUserById(id);
-                    System.out.println(user.getName());
-                    System.out.println(user.getSchool());
-                    res.status(201);
-                    return user;
+                            User user = rps.getUserById(id);
+                            System.out.println(user.getName());
+                            System.out.println(user.getSchool());
+                            res.status(201);
+                            return user;
+                        }
+                    } catch (Exception e) {
+                    }
+                    res.status(404);
+                    return null;
                 }, toJson
         );
 
@@ -105,8 +120,19 @@ public class Application {
                 }, toJson
         );
 
-
-
+        // Gets a users own ID.
+        post("/me/id",
+                (req, res) -> {
+                    try {
+                        String userToken = req.queryParams("token");
+                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        res.status(201);
+                        return info.data.user_id;
+                    } catch (Exception e) {
+                        res.status(404);
+                        return null;
+                    }
+                }, toJson
+        );
     }
-
 }

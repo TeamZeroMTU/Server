@@ -49,6 +49,8 @@ public class Application {
                     String id = req.params(":id");
                     String name = req.queryParams("name");
                     String school = req.queryParams("school");
+                    System.out.println(name);
+                    System.out.println(school);
 
                     User user = rps.createUserWithId(id, name, school);
                     if (user == null) {
@@ -58,6 +60,19 @@ public class Application {
                     res.status(201);
                     return user;
 
+                }, toJson
+        );
+
+        // Updates the user's school
+        post("/u/:id/changeSchool",
+                (req, res) -> {
+                    String id = req.params(":id");
+
+                    String school = req.queryParams("school");
+
+                    User user = rps.updateSchool(id, school);
+
+                    return user;
                 }, toJson
         );
 
@@ -85,6 +100,12 @@ public class Application {
                 }, toJson
         );
 
+        // Route for testing code locally when I don't have the FB token
+        post("/test/u/:id/info",
+                (req, res) -> {
+                    return rps.getUserById(req.params(":id"));
+                }, toJson);
+
         // Gets info about a user
         post("/u/:id/info",
                 (req, res) -> {
@@ -107,10 +128,25 @@ public class Application {
                 }, toJson
         );
 
+        // Matches with a user
+        post("/u/:id/match",
+                (req, res) -> {
+                    String id = req.params(":id");
+                    String matchId = req.queryParams("matchId");
+
+                    return rps.matchUser(id, matchId);
+                }, toJson
+        );
+
+        // Gets all matches for one user
+        post("/u/:id/matches",
+                (req, res) -> {
+                    return rps.getMatches(req.params(":id"));
+                }, toJson);
 
         // TODO: This is returning all users even if they share no courses in common
         // Gets users that share classes and go to the same school as another user
-        get("/u/:id/similar",
+        post("/u/:id/similar",
                 (req, res) -> {
                     String id = req.params(":id");
 

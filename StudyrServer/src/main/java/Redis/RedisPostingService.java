@@ -6,6 +6,7 @@ import Data.User;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,7 +25,7 @@ public class RedisPostingService {
         this.jedis = jedis;
     }
 
-    public User createUser(String name, String school) {
+    public User createUser(String name, String school) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -39,10 +40,12 @@ public class RedisPostingService {
 
         txn.exec();
 
+        txn.close();
+
         return new User(id, name, school);
     }
 
-    public User createUserWithId(String id, String name, String school) {
+    public User createUserWithId(String id, String name, String school) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -53,10 +56,12 @@ public class RedisPostingService {
 
         txn.exec();
 
+        txn.close();
+
         return new User(id, name, school);
     }
 
-    public User matchUser(String id, String matchId) {
+    public User matchUser(String id, String matchId) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -65,10 +70,12 @@ public class RedisPostingService {
 
         txn.exec();
 
-        return getUserById(id);
+        txn.close();
+
+        return getUserById(matchId);
     }
 
-    public Course addCourseToUser(String id, String name) {
+    public Course addCourseToUser(String id, String name) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -80,10 +87,32 @@ public class RedisPostingService {
 
         txn.exec();
 
+        txn.close();
+
         return new Course(name);
     }
 
-    public Course removeCourseFromUser(String id, String name) {
+    public User updateSchool(String id, String school) throws IOException {
+
+        User user = getUserById(id);
+        String previousSchool = user.getSchool();
+        user.setSchool(school);
+
+        txn = jedis.multi();
+
+        txn.srem("schoolUsers:" + previousSchool, id);
+        txn.sadd("schoolUsers:" + school, id);
+        txn.hset("user:" + id, "school", school);
+
+        txn.exec();
+
+        txn.close();
+
+        return user;
+
+    }
+
+    public Course removeCourseFromUser(String id, String name) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -94,6 +123,8 @@ public class RedisPostingService {
         txn.srem("courseUsers:" + name, id);
 
         txn.exec();
+
+        txn.close();
 
         return new Course(name);
     }
@@ -121,9 +152,7 @@ public class RedisPostingService {
     public User getUserById(String id) {
 
         String name = jedis.hget("user:" + id, "name");
-        System.out.println("NAME: " + name);
         String school = jedis.hget("user:" + id, "school");
-        System.out.println("SCHOOL: " + school);
 
         ArrayList<Course> courses = getCoursesById(id);
 
@@ -141,14 +170,23 @@ public class RedisPostingService {
     public ArrayList<User> getMatches(String id) {
         ArrayList<String> potentialMatches = getPotentialMatchIds(id);
 
+        ArrayList<String> removeList = new ArrayList<String>();
+
         for (String matchId : potentialMatches) {
+            boolean found = false;
             ArrayList<String> matches = getPotentialMatchIds(matchId);
             for (String mId : matches) {
                 if (mId.equals(id)) {
-                    continue;
+                    found = true;
                 }
             }
-            potentialMatches.remove(matchId);
+            if (!found) {
+                removeList.add(matchId);
+            }
+        }
+
+        for (String rid : removeList) {
+            potentialMatches.remove(rid);
         }
 
         ArrayList<User> foundMatches = new ArrayList<User>();
@@ -158,10 +196,9 @@ public class RedisPostingService {
         }
 
         return foundMatches;
-
     }
 
-    public Message createMessage(String senderId, String recId, String text) {
+    public Message createMessage(String senderId, String recId, String text) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -183,6 +220,8 @@ public class RedisPostingService {
 
         txn.exec();
 
+        txn.close();
+
 
         return message;
     }
@@ -197,8 +236,6 @@ public class RedisPostingService {
         Date date = new Date(Long.parseLong(time));
 
         return new Message(text, id, sender, receiver, date);
-
-
     }
 
     public ArrayList<Message> getMessages(String senderId, String recId) {

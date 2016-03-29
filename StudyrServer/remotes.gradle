@@ -1,9 +1,0 @@
-remotes {
-    desktopServer {
-        host = 'jeremypi.duckdns.org'
-        user = 'www'
-        port = 22
-        knownHosts = allowAnyHosts
-        identity = file("/home/miles/.ssh/id_rsa")
-    }
-}

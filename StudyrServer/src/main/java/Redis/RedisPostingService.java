@@ -75,7 +75,7 @@ public class RedisPostingService {
         return getUserById(matchId);
     }
 
-    public Course addCourseToUser(String id, String name) throws IOException {
+    public User addCourseToUser(String id, String name) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -89,7 +89,7 @@ public class RedisPostingService {
 
         txn.close();
 
-        return new Course(name);
+        return getUserById(id);
     }
 
     public User updateSchool(String id, String school) throws IOException {
@@ -112,7 +112,7 @@ public class RedisPostingService {
 
     }
 
-    public Course removeCourseFromUser(String id, String name) throws IOException {
+    public User removeCourseFromUser(String id, String name) throws IOException {
 
         // Set txn
         txn  = jedis.multi();
@@ -126,7 +126,7 @@ public class RedisPostingService {
 
         txn.close();
 
-        return new Course(name);
+        return getUserById(id);
     }
 
     public ArrayList<Course> getCoursesById(String id) {
@@ -222,6 +222,10 @@ public class RedisPostingService {
 
         txn.close();
 
+        for (String testing : jedis.lrange("messages:" + recId, 0, -1)) {
+            System.out.println("TESTING: " + testing);
+        }
+
 
         return message;
     }
@@ -233,8 +237,11 @@ public class RedisPostingService {
         String receiver = jedis.hget("message:" + id, "receiver");
         String time = jedis.hget("message:" + id, "time");
 
-        Date date = new Date(Long.parseLong(time));
+        //Date date = new Date(Long.parseLong(time));
 
+        // TODO: Fix NumberFormatException that occurs when we try to get the date of the message
+
+        Date date = new Date();
         return new Message(text, id, sender, receiver, date);
     }
 
@@ -245,17 +252,31 @@ public class RedisPostingService {
 
         for (String id : jedis.lrange("messages:" + senderId, 0, -1)) {
             idSender.add(id);
+            System.out.println("Sender id: " + id);
         }
 
         for (String id : jedis.lrange("messages:" + recId, 0, -1)) {
             idReceiver.add(id);
+            System.out.println("Receiver id: " + id);
         }
 
-        idSender.retainAll(idReceiver);
+        ArrayList<String> sharedIds = new ArrayList<>();
+
+        for (String id : idSender) {
+            boolean shared = false;
+            for (String receiveId : idReceiver) {
+                if (id.equals(receiveId)) {
+                    shared = true;
+                }
+            }
+            if (shared) {
+                sharedIds.add(id);
+            }
+        }
 
         ArrayList<Message> messages = new ArrayList<Message>();
 
-        for (String id : idSender) {
+        for (String id : sharedIds) {
             messages.add(0, getMessageById(id));
         }
 

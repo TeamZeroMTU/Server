@@ -5,13 +5,9 @@ import com.google.gson.Gson;
 import org.eclipse.jetty.util.log.Log;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
 
@@ -36,42 +32,49 @@ public class TokenInterrogator {
 
     public TokenInfo getUserTokenInfo(final String tokenString) {
         try {
-            StringBuilder urlBuilder =
-                    new StringBuilder()
-                            .append("https://graph.facebook.com/v2.5/debug_token?")
-                            .append(URLEncoder.encode("input_token", "UTF-8"))
-                            .append("=")
-                            .append(URLEncoder.encode(tokenString, "UTF-8"))
-                            .append("&")
-                            .append(URLEncoder.encode("access_token", "UTF-8"))
-                            .append("=")
-                            .append(fbPublicAppKey + "|" + fbPrivateAppKey);
+            if(tokenString == null) {
+                Log.getLog().info("token is null");
+            } else {
+                Log.getLog().info("Starting token info request");
+                StringBuilder urlBuilder =
+                        new StringBuilder()
+                                .append("https://graph.facebook.com/v2.5/debug_token?")
+                                .append(URLEncoder.encode("input_token", "UTF-8"))
+                                .append("=")
+                                .append(URLEncoder.encode(tokenString, "UTF-8"))
+                                .append("&")
+                                .append(URLEncoder.encode("access_token", "UTF-8"))
+                                .append("=")
+                                .append(fbPublicAppKey + "|" + fbPrivateAppKey);
 
-            final String urlString = urlBuilder.toString();
-            URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setReadTimeout(10000);
-            connection.setConnectTimeout(15000);
-            connection.setRequestMethod("GET");
-            connection.setDoOutput(false);
-            connection.connect();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            String input;
-            StringBuilder responseBuilder = new StringBuilder();
-            while ((input = reader.readLine()) != null) {
-                responseBuilder.append(input);
+                final String urlString = urlBuilder.toString();
+                URL url = new URL(urlString);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setReadTimeout(10000);
+                connection.setConnectTimeout(15000);
+                connection.setRequestMethod("GET");
+                connection.setDoOutput(false);
+                connection.setDoInput(true);
+                connection.connect();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String input;
+                StringBuilder responseBuilder = new StringBuilder();
+                while ((input = reader.readLine()) != null) {
+                    responseBuilder.append(input);
+                }
+                reader.close();
+                final String jsonString = responseBuilder.toString();
+                Log.getLog().info("Interrogator:jsonString\n" + jsonString);
+                return new Gson().fromJson(jsonString, TokenInfo.class);
             }
-            final String jsonString = responseBuilder.toString();
-            return new Gson().fromJson(jsonString, TokenInfo.class);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (ProtocolException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.getLog().warn("TokenInterrogator: Invalid token info!", e);
         }
+        Log.getLog().warn("TokenInterrogator: Null token!");
         return null;
+    }
+
+    public boolean isValid(TokenInfo info) {
+        return info.data.app_id == fbPublicAppKey && info.data.is_valid.compareTo("true") == 0;
     }
 }

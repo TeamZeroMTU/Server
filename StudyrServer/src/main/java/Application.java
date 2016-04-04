@@ -7,6 +7,7 @@ import org.eclipse.jetty.util.log.Log;
 import java.util.ArrayList;
 
 import Data.Course;
+import Data.Message;
 import Data.User;
 import Facebook.TokenInfo;
 import Facebook.TokenInterrogator;
@@ -108,9 +109,9 @@ public class Application {
                     String id = req.params(":id");
                     String name = req.queryParams("name");
 
-                    Course course = rps.addCourseToUser(id, name);
+                    User user = rps.addCourseToUser(id, name);
                     res.status(201);
-                    return course;
+                    return user;
                 }, toJson
         );
 
@@ -120,9 +121,9 @@ public class Application {
                     String id = req.params(":id");
                     String name = req.queryParams("name");
 
-                    Course course = rps.removeCourseFromUser(id, name);
+                    User user = rps.removeCourseFromUser(id, name);
                     res.status(201);
-                    return course;
+                    return user;
                 }, toJson
         );
 
@@ -200,6 +201,29 @@ public class Application {
                 }, toJson
         );
 
+        // TODO: Fix date so that it is saved in a format that will be accessible
+        // Sends a message to a user
+        post("/u/:id/sendmessage",
+                (req, res) -> {
+                    String id = req.params(":id");
+                    String recId = req.queryParams("recid");
+                    String text = req.queryParams("text");
+
+                    Message msg = rps.createMessage(id, recId, text);
+                    return msg;
+                }, toJson
+        );
+
+        // TODO: Fix date so that it is saved in a format that will be accessible
+        // Gets the messges between two users
+        post("/u/:id/getmessages",
+                (req, res) -> {
+                    String id = req.params(":id");
+                    String recId = req.queryParams("recid");
+                    ArrayList<Message> msgs = rps.getMessages(id, recId);
+                    return msgs;
+                }, toJson
+        );
         exception(Exception.class, (e, request, response) -> {
             Log.getLog().warn("Exception", e);
             response.status(404);

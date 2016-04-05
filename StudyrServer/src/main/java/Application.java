@@ -5,8 +5,8 @@
 import org.eclipse.jetty.util.log.Log;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
-import Data.Course;
 import Data.Message;
 import Data.User;
 import Facebook.TokenInfo;
@@ -18,6 +18,7 @@ import spark.ResponseTransformer;
 
 import static spark.Spark.delete;
 import static spark.Spark.exception;
+import static spark.Spark.get;
 import static spark.Spark.post;
 public class Application {
 
@@ -80,20 +81,21 @@ public class Application {
                         String userToken = req.queryParams("token");
                         if(userToken == null) {
                             Log.getLog().warn("ChangeSchool: Null user token");
-                        }
-                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
-                        if(info != null && info.data.user_id.compareTo( id ) == 0) {
-                            String school = req.queryParams("school");
-
-                            User user = rps.updateSchool(id, school);
-                            System.out.println(
-                                    "changeSchool: \n" +
-                                            "\tUser: " + user.getName() + "\n" +
-                                            "\tSchool: " + user.getSchool());
-                            res.status(201);
-                            return user;
                         } else {
-                            Log.getLog().warn("Invalid change school request");
+                            final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                            if (info != null && info.data.user_id.compareTo(id) == 0) {
+                                String school = req.queryParams("school");
+
+                                User user = rps.updateSchool(id, school);
+                                System.out.println(
+                                        "changeSchool: \n" +
+                                                "\tUser: " + user.getName() + "\n" +
+                                                "\tSchool: " + user.getSchool());
+                                res.status(201);
+                                return user;
+                            } else {
+                                Log.getLog().warn("Invalid change school request");
+                            }
                         }
                     } catch (Exception e) {
                         Log.getLog().warn("changeSchool:", e);
@@ -224,6 +226,18 @@ public class Application {
                     return msgs;
                 }, toJson
         );
+        
+        get("/developer/blaineneedsthings",
+                (req, res) -> {
+                    Collection<String> userIds = rps.getAllUserIds();
+                    ArrayList<User> users = new ArrayList<User>();
+                    for (String id : userIds) {
+                        users.add(rps.getUserById(id));
+                    }
+                    return users;
+                }, toJson
+        );
+
         exception(Exception.class, (e, request, response) -> {
             Log.getLog().warn("Exception", e);
             response.status(404);

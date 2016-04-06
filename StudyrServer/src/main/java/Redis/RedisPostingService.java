@@ -1,17 +1,16 @@
 package Redis;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.UUID;
+
 import Data.Course;
 import Data.Message;
 import Data.User;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
-
-import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * Created by miles on 2/27/16.
@@ -37,7 +36,7 @@ public class RedisPostingService {
         txn.hset("user:" + id, "name", name);
         txn.hset("user:" + id, "school", school);
         txn.sadd("schoolUsers:" + school, id);
-
+        txn.sadd("schools", school);
         txn.exec();
 
         txn.close();
@@ -53,12 +52,24 @@ public class RedisPostingService {
         txn.hset("user:" + id, "name", name);
         txn.hset("user:" + id, "school", school);
         txn.sadd("schoolUsers:" + school, id);
+        txn.sadd("schools", school);
 
         txn.exec();
 
         txn.close();
 
         return new User(id, name, school);
+    }
+
+    public Collection<String> getAllUserIds() {
+        Collection<String> schools = jedis.smembers("schools");
+
+        Collection<String> userIds = new ArrayList<String>();
+        for(String school: schools) {
+            userIds.addAll(jedis.smembers("schoolUsers:" + school));
+        }
+
+        return userIds;
     }
 
     public User matchUser(String id, String matchId) throws IOException {
@@ -109,6 +120,7 @@ public class RedisPostingService {
         txn.srem("schoolUsers:" + previousSchool, id);
         txn.sadd("schoolUsers:" + school, id);
         txn.hset("user:" + id, "school", school);
+        txn.sadd("schools", school);
 
         txn.exec();
 

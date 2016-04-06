@@ -2,9 +2,11 @@
  * Created by miles on 2/15/16.
  */
 
-import java.util.ArrayList;
+import org.eclipse.jetty.util.log.Log;
 
-import Data.Course;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import Data.Message;
 import Data.User;
 import Facebook.TokenInfo;
@@ -15,6 +17,7 @@ import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
 
 import static spark.Spark.delete;
+import static spark.Spark.exception;
 import static spark.Spark.get;
 import static spark.Spark.post;
 public class Application {
@@ -34,13 +37,19 @@ public class Application {
         // Creates a new user
         post("/u/create",
                 (req, res) -> {
-                    String name = req.queryParams("name");
-                    String school = req.queryParams("school");
-
-                    User user = rps.createUser(name, school);
-                    res.status(201);
-                    return user;
-
+                    try {
+                        String userToken = req.queryParams("token");
+                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        if(info != null && info.data != null && fbInterrogator.isValid(info)) {
+                            rps.createUserWithId(info.data.user_id, "", "");
+                            res.status(201);
+                            return info.data.user_id;
+                        }
+                    } catch (Exception e) {
+                        Log.getLog().warn("create:", e);
+                    }
+                    res.status(404);
+                    return null;
                 }, toJson
         );
 
@@ -53,7 +62,7 @@ public class Application {
                     System.out.println(name);
                     System.out.println(school);
 
-                    User user = rps.createUserWithId(id, name, school);
+                    User user  = rps.createUserWithId(id, name, school);
                     if (user == null) {
                         res.status(200); // Not sure what the correct response code is in the case that this user already exists
                         return user;
@@ -67,13 +76,32 @@ public class Application {
         // Updates the user's school
         post("/u/:id/changeSchool",
                 (req, res) -> {
-                    String id = req.params(":id");
+                    try {
+                        String id = req.params(":id");
+                        String userToken = req.queryParams("token");
+                        if(userToken == null) {
+                            Log.getLog().warn("ChangeSchool: Null user token");
+                        } else {
+                            final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                            if (info != null && info.data.user_id.compareTo(id) == 0) {
+                                String school = req.queryParams("school");
 
-                    String school = req.queryParams("school");
-
-                    User user = rps.updateSchool(id, school);
-
-                    return user;
+                                User user = rps.updateSchool(id, school);
+                                System.out.println(
+                                        "changeSchool: \n" +
+                                                "\tUser: " + user.getName() + "\n" +
+                                                "\tSchool: " + user.getSchool());
+                                res.status(201);
+                                return user;
+                            } else {
+                                Log.getLog().warn("Invalid change school request");
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.getLog().warn("changeSchool:", e);
+                    }
+                    res.status(404);
+                    return null;
                 }, toJson
         );
 
@@ -117,8 +145,11 @@ public class Application {
                             String id = req.params(":id");
 
                             User user = rps.getUserById(id);
-                            System.out.println(user.getName());
-                            System.out.println(user.getSchool());
+                            System.out.println(
+                                    "Info: \n" +
+                                            "\tUser: " + user.getUserID() + "\n" +
+                                    "\tUser: " + user.getName() + "\n" +
+                                    "\tSchool: " + user.getSchool());
                             res.status(201);
                             return user;
                         }
@@ -204,5 +235,22 @@ public class Application {
                     return msgs;
                 }, toJson
         );
+        
+        get("/developer/blaineneedsthings",
+                (req, res) -> {
+                    Collection<String> userIds = rps.getAllUserIds();
+                    ArrayList<User> users = new ArrayList<User>();
+                    for (String id : userIds) {
+                        users.add(rps.getUserById(id));
+                    }
+                    return users;
+                }, toJson
+        );
+
+        exception(Exception.class, (e, request, response) -> {
+            Log.getLog().warn("Exception", e);
+            response.status(404);
+            response.body("Resource not found");
+        });
     }
 }

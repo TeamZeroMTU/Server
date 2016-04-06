@@ -64,7 +64,6 @@ public class TokenInterrogator {
                 }
                 reader.close();
                 final String jsonString = responseBuilder.toString();
-                Log.getLog().info("Interrogator:jsonString\n" + jsonString);
                 return new Gson().fromJson(jsonString, TokenInfo.class);
             }
         } catch (Exception e) {

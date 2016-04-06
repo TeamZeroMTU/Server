@@ -322,18 +322,30 @@ public class RedisPostingService {
         }
 
         ArrayList<User> users = getUsersBySchool(jedis.hget("user:" + id, "school"));
+        ArrayList<User> removeUsers = new ArrayList<User>();
 
         for (User user : users) {
             ArrayList<Course> userCourses = getCoursesById(id);
             ArrayList<String> userCourseStrings = new ArrayList<String>();
+            boolean remove = true;
             for (Course course : userCourses) {
                 userCourseStrings.add(course.getName());
             }
 
-            userCourseStrings.retainAll(courseStrings);
-            if (userCourseStrings.size() == 0) {
-                users.remove(user);
+            for (String myCourse : courseStrings) {
+                for (String userCourse : userCourseStrings) {
+                    if (myCourse.equals(userCourse)) {
+                        remove = false;
+                    }
+                }
             }
+            if (remove) {
+                removeUsers.add(user);
+            }
+        }
+
+        for (User user : removeUsers) {
+            users.remove(user);
         }
 
         return users;

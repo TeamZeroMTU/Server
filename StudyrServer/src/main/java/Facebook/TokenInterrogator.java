@@ -74,6 +74,6 @@ public class TokenInterrogator {
     }
 
     public boolean isValid(TokenInfo info) {
-        return info.data.app_id == fbPublicAppKey && info.data.is_valid.compareTo("true") == 0;
+        return info != null && info.data != null && info.data.app_id == fbPublicAppKey && info.data.is_valid.compareTo("true") == 0;
     }
 }

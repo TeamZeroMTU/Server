@@ -77,6 +77,9 @@ public class RedisPostingService {
 
     public User addCourseToUser(String id, String name) throws IOException {
 
+        User user = getUserById(id);
+        String school = user.getSchool();
+
         // Set txn
         txn  = jedis.multi();
 
@@ -84,6 +87,9 @@ public class RedisPostingService {
         txn.sadd("userCourses:" + id, name);
         // Add the user ID to a list of IDs associated with that course
         txn.sadd("courseUsers:" + name, id);
+
+        // Add the course to a set of courses at that school
+        txn.sadd("schoolCourses:" + school, name);
 
         txn.exec();
 
@@ -110,6 +116,16 @@ public class RedisPostingService {
 
         return user;
 
+    }
+
+    public ArrayList<Course> getCoursesForSchool(String school) {
+        ArrayList<Course> courses = new ArrayList<>();
+        for (String name : jedis.smembers("schoolCourses:" + school)) {
+            Course course = new Course(name);
+            courses.add(course);
+        }
+
+        return courses;
     }
 
     public User removeCourseFromUser(String id, String name) throws IOException {

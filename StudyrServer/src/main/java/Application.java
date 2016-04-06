@@ -129,6 +129,14 @@ public class Application {
                 }, toJson
         );
 
+        // Gets all courses associated with a school
+        post("/s/:school/courses",
+                (req, res) -> {
+                    ArrayList<Course> courses = rps.getCoursesForSchool(req.params(":school"));
+                    return courses;
+                }, toJson
+        );
+
         // Matches with a user
         post("/u/:id/match",
                 (req, res) -> {
@@ -144,6 +152,7 @@ public class Application {
                 (req, res) -> {
                     return rps.getMatches(req.params(":id"));
                 }, toJson);
+
 
         // TODO: This is returning all users even if they share no courses in common
         // Gets users that share classes and go to the same school as another user

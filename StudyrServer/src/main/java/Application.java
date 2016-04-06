@@ -2,6 +2,7 @@
  * Created by miles on 2/15/16.
  */
 
+import Data.Course;
 import org.eclipse.jetty.util.log.Log;
 
 import java.util.ArrayList;

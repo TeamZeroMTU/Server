@@ -2,12 +2,12 @@
  * Created by miles on 2/15/16.
  */
 
-import Data.Course;
 import org.eclipse.jetty.util.log.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
+import Data.Course;
 import Data.Message;
 import Data.User;
 import Facebook.TokenInfo;
@@ -17,7 +17,6 @@ import Redis.RedisPostingService;
 import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
 
-import static spark.Spark.delete;
 import static spark.Spark.exception;
 import static spark.Spark.get;
 import static spark.Spark.post;
@@ -119,7 +118,7 @@ public class Application {
         );
 
         // Removes a course from an existing user
-        delete("/u/:id/removecourse",
+        post("/u/:id/removecourse",
                 (req, res) -> {
                     String id = req.params(":id");
                     String name = req.queryParams("name");
@@ -165,6 +164,7 @@ public class Application {
         post("/s/:school/courses",
                 (req, res) -> {
                     ArrayList<Course> courses = rps.getCoursesForSchool(req.params(":school"));
+                    res.status(200);
                     return courses;
                 }, toJson
         );

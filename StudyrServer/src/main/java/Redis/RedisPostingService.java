@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import Data.Course;
@@ -84,6 +87,22 @@ public class RedisPostingService {
         txn.close();
 
         return getUserById(matchId);
+    }
+
+    public User rejectUser(String id, String rejectId) throws IOException {
+
+        // Set txn
+        txn = jedis.multi();
+
+        txn.sadd("reject:" + id, rejectId);
+        txn.sadd("reject:" + rejectId, id);
+        txn.expire("reject:" + id, 600);
+        txn.expire("reject:" + rejectId, 600);
+        txn.exec();
+
+        txn.close();
+
+        return getUserById(rejectId);
     }
 
     public User addCourseToUser(String id, String name) throws IOException {
@@ -226,6 +245,15 @@ public class RedisPostingService {
         return foundMatches;
     }
 
+    public ArrayList<User> rejectedUsers(String id) {
+        List<String> ids = jedis.lrange("reject:" + id, 0, -1);
+        ArrayList<User> rejects = new ArrayList<User>();
+        for (String uid : ids) {
+            rejects.add(getUserById(uid));
+        }
+        return rejects;
+    }
+
     public Message createMessage(String senderId, String recId, String text) throws IOException {
 
         // Set txn
@@ -324,6 +352,16 @@ public class RedisPostingService {
 
         ArrayList<User> users = getUsersBySchool(jedis.hget("user:" + id, "school"));
         ArrayList<User> removeUsers = new ArrayList<User>();
+        ArrayList<User> matched = getMatches(id);
+        Set<String> matchedIds = new HashSet<>();
+        for (User user : matched) {
+            matchedIds.add(user.getUserID());
+        }
+        ArrayList<User> rejected = rejectedUsers(id);
+        Set<String> rIds = new HashSet<>();
+        for (User user : rejected) {
+            rIds.add(user.getUserID());
+        }
 
         for (User user : users) {
             ArrayList<Course> userCourses = getCoursesById(id);
@@ -339,6 +377,19 @@ public class RedisPostingService {
                         remove = false;
                     }
                 }
+            }
+            for (String str : matchedIds) {
+                if (str.equals(user.getUserID())) {
+                    remove = true;
+                }
+            }
+            for (String str : rIds) {
+                if (str.equals(user.getUserID())) {
+                    remove = true;
+                }
+            }
+            if (user.getUserID().equals(id)) {
+                remove = true;
             }
             if (remove) {
                 removeUsers.add(user);

@@ -169,6 +169,16 @@ public class Application {
                 }, toJson
         );
 
+        // Rejects a user
+        post("/u/:id/reject",
+                (req, res) -> {
+                    String id = req.params(":id");
+                    String rejectId = req.queryParams("rejectId");
+
+                    return rps.rejectUser(id, rejectId);
+                }, toJson
+        );
+
         // Matches with a user
         post("/u/:id/match",
                 (req, res) -> {

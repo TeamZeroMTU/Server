@@ -186,7 +186,6 @@ public class Application {
                 }, toJson);
 
 
-        // TODO: This is returning all users even if they share no courses in common
         // Gets users that share classes and go to the same school as another user
         post("/u/:id/similar",
                 (req, res) -> {

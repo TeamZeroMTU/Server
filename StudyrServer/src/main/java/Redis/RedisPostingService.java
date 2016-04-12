@@ -311,6 +311,7 @@ public class RedisPostingService {
         return messages;
     }
 
+    // TODO: This needs to be tested.
     public ArrayList<User> getSimilarUsers(String id) {
 
 

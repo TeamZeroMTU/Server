@@ -64,6 +64,20 @@ public class RedisPostingService {
         return new User(id, name, school);
     }
 
+    public User setUserName(String id, String name) throws IOException {
+
+        // Set txn
+        txn  = jedis.multi();
+
+        txn.hset("user:" + id, "name", name);
+
+        txn.exec();
+
+        txn.close();
+
+        return getUserById( id );
+    }
+
     public Collection<String> getAllUserIds() {
         Collection<String> schools = jedis.smembers("schools");
 

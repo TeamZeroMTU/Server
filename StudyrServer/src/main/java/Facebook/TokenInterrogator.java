@@ -17,6 +17,7 @@ import java.net.URLEncoder;
 public class TokenInterrogator {
     private final String fbPrivateAppKey;
     private final String fbPublicAppKey = "576652959159971";
+    private Gson gson = new Gson();
 
     public TokenInterrogator() {
         InputStream in = ClassLoader.getSystemClassLoader().getResourceAsStream("private.txt");
@@ -64,7 +65,55 @@ public class TokenInterrogator {
                 }
                 reader.close();
                 final String jsonString = responseBuilder.toString();
-                return new Gson().fromJson(jsonString, TokenInfo.class);
+                return gson.fromJson(jsonString, TokenInfo.class);
+            }
+        } catch (Exception e) {
+            Log.getLog().warn("TokenInterrogator: Invalid token info!", e);
+        }
+        Log.getLog().warn("TokenInterrogator: Null token!");
+        return null;
+    }
+
+    public String getName(final String userId, final String tokenString) {
+        Log.getLog().info("TokenInterrogator getName()");
+        try {
+            if(userId == null) {
+                Log.getLog().info("token is null");
+            } else {
+                Log.getLog().info("Starting token info request");
+                StringBuilder urlBuilder =
+                        new StringBuilder()
+                                .append("https://graph.facebook.com/v2.6/" + userId + '?')
+                                .append(URLEncoder.encode("access_token", "UTF-8"))
+                                .append("=")
+                                .append(fbPublicAppKey + "|" + fbPrivateAppKey);
+
+                final String urlString = urlBuilder.toString();
+                URL url = new URL(urlString);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setReadTimeout(10000);
+                connection.setConnectTimeout(15000);
+                connection.setRequestMethod("GET");
+                connection.setDoOutput(false);
+                connection.setDoInput(true);
+                connection.connect();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String input;
+                StringBuilder responseBuilder = new StringBuilder();
+                while ((input = reader.readLine()) != null) {
+                    responseBuilder.append(input);
+                }
+                reader.close();
+                final String jsonString = responseBuilder.toString();
+                Log.getLog().info("Name pull:" + jsonString);
+                NameInfo d = gson.fromJson(jsonString, NameInfo.class);
+                if(d != null) {
+                    Log.getLog().info("datum");
+                    Log.getLog().info("datum" + d.name);
+                    Log.getLog().info("datum" + d.id);
+                    return d.name;
+                }
+                return null;
             }
         } catch (Exception e) {
             Log.getLog().warn("TokenInterrogator: Invalid token info!", e);

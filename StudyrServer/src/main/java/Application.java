@@ -213,6 +213,14 @@ public class Application {
                     try {
                         String userToken = req.queryParams("token");
                         final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                        User user = rps.getUserById( info.data.user_id );
+                        String name = user.getName();
+                        if(name == null || name.equals("")) {
+                            String newName = fbInterrogator.getName( info.data.user_id, userToken );
+                            if(newName != null) {
+                                rps.setUserName( info.data.user_id, newName );
+                            }
+                        }
                         res.status(201);
                         return info.data.user_id;
                     } catch (Exception e) {

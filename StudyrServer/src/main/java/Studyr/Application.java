@@ -1,6 +1,7 @@
 /**
  * Created by miles on 2/15/16.
  */
+package Studyr;
 
 import org.eclipse.jetty.util.log.Log;
 
@@ -13,18 +14,24 @@ import Data.User;
 import Facebook.TokenInfo;
 import Facebook.TokenInterrogator;
 import JSON.Json;
+import Messaging.MessagingManager;
+import Messaging.MessagingSocket;
 import Redis.RedisPostingService;
 import redis.clients.jedis.Jedis;
 import spark.ResponseTransformer;
+import spark.Spark;
 
-import static spark.Spark.exception;
-import static spark.Spark.get;
-import static spark.Spark.post;
+import static spark.Spark.*;
+
 public class Application {
 
     static ResponseTransformer toJson = obj -> Json.gson.toJson(obj);
 
     static RedisPostingService rps;
+
+    public static void shutdown() {
+        Spark.stop();
+    }
 
     public static void main(String[] args) {
 
@@ -32,24 +39,25 @@ public class Application {
 
         rps = new RedisPostingService(jedis);
 
-        TokenInterrogator fbInterrogator = new TokenInterrogator();
+        TokenInterrogator fbInterrogator = TokenInterrogator.getInstance();
+
+        MessagingManager.init( rps );
+        webSocket("/chat", MessagingSocket.class);
 
         // Creates a new user
         post("/u/create",
                 (req, res) -> {
-                    try {
-                        String userToken = req.queryParams("token");
-                        final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
-                        if(info != null && info.data != null && fbInterrogator.isValid(info)) {
-                            rps.createUserWithId(info.data.user_id, "", "");
-                            res.status(201);
-                            return info.data.user_id;
-                        }
-                    } catch (Exception e) {
-                        Log.getLog().warn("create:", e);
+                    String userToken = req.queryParams("token");
+                    final TokenInfo info = fbInterrogator.getUserTokenInfo(userToken);
+                    if(info != null && info.data != null && fbInterrogator.isValid(info)) {
+                        User user = rps.createUserWithId(info.data.user_id, "", "");
+                        res.status(201);
+                        return user;
+                    } else {
+                        Log.getLog().warn("create:");
+                        res.status(404);
+                        return null;
                     }
-                    res.status(404);
-                    return null;
                 }, toJson
         );
 
@@ -207,8 +215,8 @@ public class Application {
                 }, toJson
         );
 
-        // Gets a users own ID.
-        post("/me/id",
+        // Gets a users own profile.
+        post("/me/user",
                 (req, res) -> {
                     try {
                         String userToken = req.queryParams("token");
@@ -222,7 +230,7 @@ public class Application {
                             }
                         }
                         res.status(201);
-                        return info.data.user_id;
+                        return user;
                     } catch (Exception e) {
                         res.status(404);
                         return null;

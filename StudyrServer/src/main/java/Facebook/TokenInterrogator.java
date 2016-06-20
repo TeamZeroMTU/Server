@@ -18,8 +18,9 @@ public class TokenInterrogator {
     private final String fbPrivateAppKey;
     private final String fbPublicAppKey = "576652959159971";
     private Gson gson = new Gson();
+    private static TokenInterrogator instance = new TokenInterrogator();
 
-    public TokenInterrogator() {
+    private TokenInterrogator() {
         InputStream in = ClassLoader.getSystemClassLoader().getResourceAsStream("private.txt");
         BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         String fileKey = null;
@@ -30,6 +31,8 @@ public class TokenInterrogator {
         }
         fbPrivateAppKey = fileKey;
     }
+
+    public static TokenInterrogator getInstance() { return instance; }
 
     public TokenInfo getUserTokenInfo(final String tokenString) {
         try {
@@ -107,13 +110,7 @@ public class TokenInterrogator {
                 final String jsonString = responseBuilder.toString();
                 Log.getLog().info("Name pull:" + jsonString);
                 NameInfo d = gson.fromJson(jsonString, NameInfo.class);
-                if(d != null) {
-                    Log.getLog().info("datum");
-                    Log.getLog().info("datum" + d.name);
-                    Log.getLog().info("datum" + d.id);
-                    return d.name;
-                }
-                return null;
+                return d.name;
             }
         } catch (Exception e) {
             Log.getLog().warn("TokenInterrogator: Invalid token info!", e);
@@ -123,6 +120,9 @@ public class TokenInterrogator {
     }
 
     public boolean isValid(TokenInfo info) {
-        return info != null && info.data != null && info.data.app_id == fbPublicAppKey && info.data.is_valid.compareTo("true") == 0;
+        return info != null &&
+                info.data != null &&
+                info.data.app_id.compareTo(fbPublicAppKey) == 0 &&
+                info.data.is_valid.compareTo("true") == 0;
     }
 }
